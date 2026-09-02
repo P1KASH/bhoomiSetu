@@ -512,6 +512,7 @@ import {
   toCanonicalRecord,
   toNormalizedMap,
   normalizeDevanagariNumerals,
+  normalizeDevanagariText,
   hasDevanagariNumerals,
   type CanonicalMap,
   type CanonicalRecord,
@@ -519,7 +520,7 @@ import {
 } from './multilingualExtraction';
 
 export type { CanonicalFieldKey, CanonicalField, CanonicalRecord, CanonicalMap } from './multilingualExtraction';
-export { normalizeDevanagariNumerals, hasDevanagariNumerals, toCanonicalRecord, toNormalizedMap };
+export { normalizeDevanagariNumerals, normalizeDevanagariText, hasDevanagariNumerals, toCanonicalRecord, toNormalizedMap };
 
 export interface CanonicalExtractionResult {
   fields: ExtractedField[];

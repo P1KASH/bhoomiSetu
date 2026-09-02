@@ -63,11 +63,31 @@ const DEVANAGARI_DIGITS = new Map<string, string>([
   ['५', '5'], ['६', '6'], ['७', '7'], ['८', '8'], ['९', '9'],
 ]);
 
+// Devanagari consonant/vowel → Latin, for normalizing survey suffixes like २अ → 2A
+const DEVANAGARI_LETTERS = new Map<string, string>([
+  ['अ', 'A'], ['ब', 'B'], ['क', 'K'], ['ग', 'G'], ['ड', 'D'],
+  ['च', 'C'], ['ज', 'J'], ['त', 'T'], ['न', 'N'], ['प', 'P'],
+  ['म', 'M'], ['य', 'Y'], ['र', 'R'], ['ल', 'L'], ['व', 'V'],
+  ['श', 'Sh'], ['स', 'S'], ['ह', 'H'], ['ए', 'E'], ['ई', 'I'],
+  ['आ', 'Aa'], ['ओ', 'O'], ['ऊ', 'U'], ['ख', 'Kh'], ['छ', 'Ch'],
+  ['थ', 'Th'], ['ध', 'Dh'], ['भ', 'Bh'], ['घ', 'Gh'], ['ठ', 'Th'],
+  ['ढ', 'Dh'], ['झ', 'Jh'], ['ष', 'Sh'], ['ण', 'N'], ['फ', 'Ph'],
+]);
+
 /** Convert Devanagari numerals (०-९) to Arabic (0-9). Other chars pass through. */
 export function normalizeDevanagariNumerals(text: string): string {
   let out = '';
   for (const ch of text) {
     out += DEVANAGARI_DIGITS.get(ch) ?? ch;
+  }
+  return out;
+}
+
+/** Convert Devanagari digits AND letters to Latin equivalents. */
+export function normalizeDevanagariText(text: string): string {
+  let out = '';
+  for (const ch of text) {
+    out += DEVANAGARI_DIGITS.get(ch) ?? DEVANAGARI_LETTERS.get(ch) ?? ch;
   }
   return out;
 }
@@ -113,7 +133,8 @@ const LABEL_ENTRIES: LabelEntry[] = [
 
   // --- survey_number (English) ---
   { canonical: 'survey_number', language: 'en', pattern: /(?:survey\s*(?:no|number|num)|gut\s*(?:no|number)|cts\s*(?:no|number))\s*\.?\s*[:：\-]?\s*(\d{1,4}[A-Za-z]?(?:\/\d{1,4}[A-Za-z]?)?)/i },
-  // --- survey_number (Marathi) ---
+  // --- survey_number (Marathi) --- Combined label must be tried first
+  { canonical: 'survey_number', language: 'mr', pattern: new RegExp('^\\s*गट क्रमांक\\s*[/\\-]?\\s*सर्वे क्रमांक\\s*[:：\\-]?\\s*(.+)', 'i') },
   { canonical: 'survey_number', language: 'mr', pattern: labelRegex('गट क्रमांक') },
   { canonical: 'survey_number', language: 'mr', pattern: labelRegex('गट नं.') },
   { canonical: 'survey_number', language: 'mr', pattern: labelRegex('सर्वे क्रमांक') },
@@ -186,6 +207,24 @@ function cleanDevanagariValue(raw: string): string {
   return v;
 }
 
+/**
+ * Produce the normalized (machine-comparable) value for a canonical field.
+ * - survey_number: digits + Devanagari letters (२अ → 2A)
+ * - area: digits only, strip unit words (एकर, हेक्टर)
+ * - all others: digits only
+ */
+function normalizeForCanonical(key: CanonicalFieldKey, displayValue: string): string {
+  if (key === 'survey_number') {
+    return normalizeDevanagariText(displayValue).replace(/\s+/g, '').trim();
+  }
+  if (key === 'area') {
+    return normalizeDevanagariNumerals(displayValue)
+      .replace(/\s*(?:एकर|हेक्टर|एकं|acres?|hectares?|ha|gunthe?)\s*$/i, '')
+      .trim();
+  }
+  return normalizeDevanagariNumerals(displayValue);
+}
+
 // ---------------------------------------------------------------------------
 // Main entry point: parse raw OCR text → canonical map
 // ---------------------------------------------------------------------------
@@ -216,7 +255,7 @@ export function parseMultilingualFields(rawText: string): CanonicalMap {
 
       if (displayValue.length < 1) continue;
 
-      const normalizedValue = normalizeDevanagariNumerals(displayValue);
+      const normalizedValue = normalizeForCanonical(entry.canonical, displayValue);
 
       // Extract the matched label text from the line for traceability
       const matchStart = m.index ?? 0;
