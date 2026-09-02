@@ -30,6 +30,7 @@ import { DEMO_RECORD_ID } from '../data/mockData';
 import { runOcr, isAcceptedFile, formatFileSize, fileKind, createPreviewUrl, ocrLangLabel, OCR_LANG_OPTIONS, type OcrPhase, type OcrLang } from '../lib/ocr';
 import {
   extractFields,
+  extractFieldsCanonical,
   overallFieldConfidence,
   fieldCompleteness,
   getDocSchema,
@@ -182,7 +183,16 @@ export function UploadScreen() {
         if (d.id !== id || !d.ocrText) return d;
         const schema = getDocSchema(docTypeId);
         const sourceLabel = `${schema.label}, Page ${d.processedPage}`;
-        const fields = extractFields(d.ocrText, docTypeId, d.processedPage, sourceLabel);
+        const { fields, canonical, canonicalRecord } = extractFieldsCanonical(d.ocrText, docTypeId, d.processedPage, sourceLabel);
+        const detectedFields = fields.filter((f) => f.detected);
+        // eslint-disable-next-line no-console
+        console.log('[Field Extraction] RAW OCR TEXT:\n', d.ocrText);
+        // eslint-disable-next-line no-console
+        console.log('[Field Extraction] PARSED CANONICAL FIELDS:', canonicalRecord);
+        // eslint-disable-next-line no-console
+        console.log('[Field Extraction] CANONICAL MAP:', canonical);
+        // eslint-disable-next-line no-console
+        console.log(`[Field Extraction] UI FIELDS: ${detectedFields.length}/${fields.length} detected`, fields);
         return { ...d, docTypeId, fields, showFields: true };
       }),
     );
@@ -256,7 +266,17 @@ export function UploadScreen() {
       const finalType = doc.autoDetectedType || doc.docTypeId !== 'sale-deed' ? doc.docTypeId : detectedType;
       const schema = getDocSchema(finalType);
       const sourceLabel = `${schema.label}, Page ${result.processedPage}`;
-      const fields = extractFields(result.text, finalType, result.processedPage, sourceLabel);
+      const { fields, canonical, canonicalRecord } = extractFieldsCanonical(result.text, finalType, result.processedPage, sourceLabel);
+
+      const detectedFields = fields.filter((f) => f.detected);
+      // eslint-disable-next-line no-console
+      console.log('[Field Extraction] RAW OCR TEXT:\n', result.text);
+      // eslint-disable-next-line no-console
+      console.log('[Field Extraction] PARSED CANONICAL FIELDS:', canonicalRecord);
+      // eslint-disable-next-line no-console
+      console.log('[Field Extraction] CANONICAL MAP:', canonical);
+      // eslint-disable-next-line no-console
+      console.log(`[Field Extraction] UI FIELDS: ${detectedFields.length}/${fields.length} detected`, fields);
 
       setDocs((prev) =>
         prev.map((d) =>

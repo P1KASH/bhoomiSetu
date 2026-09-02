@@ -515,6 +515,7 @@ import {
   hasDevanagariNumerals,
   type CanonicalMap,
   type CanonicalRecord,
+  type CanonicalFieldKey,
 } from './multilingualExtraction';
 
 export type { CanonicalFieldKey, CanonicalField, CanonicalRecord, CanonicalMap } from './multilingualExtraction';
@@ -528,10 +529,36 @@ export interface CanonicalExtractionResult {
 }
 
 /**
+ * Map schema-specific field keys to their canonical equivalents.
+ * Multiple schema keys (ownerName, recordedOwner, purchaserName, sellerName,
+ * previousOwner, newOwner) all map to the canonical 'owner' field.
+ */
+const SCHEMA_TO_CANONICAL: Record<string, CanonicalFieldKey> = {
+  sellerName: 'owner',
+  purchaserName: 'owner',
+  ownerName: 'owner',
+  recordedOwner: 'owner',
+  previousOwner: 'owner',
+  newOwner: 'owner',
+  surveyNumber: 'survey_number',
+  subSurveyNumber: 'survey_number',
+  area: 'area',
+  village: 'village',
+  taluka: 'taluka',
+  district: 'district',
+  mutationNumber: 'mutation_number',
+  mutationDate: 'mutation_date',
+  registrationNumber: 'registration_number',
+  registrationDate: 'registration_date',
+};
+
+/**
  * Extract fields from raw OCR text using both English and Marathi label
- * recognition.  The returned `fields` array is for UI display (preserves
- * Devanagari).  The `canonical` / `canonicalRecord` / `normalizedMap` are
- * language-independent and intended for the Validation Engine.
+ * recognition.  The returned `fields` array is for UI display — canonical
+ * multilingual results are overlaid on top of the English-only extraction so
+ * that Marathi labels produce visible field values.  The `canonical` /
+ * `canonicalRecord` / `normalizedMap` are language-independent and intended
+ * for the Validation Engine.
  */
 export function extractFieldsCanonical(
   rawText: string,
@@ -540,12 +567,40 @@ export function extractFieldsCanonical(
   sourceLabel: string = '',
 ): CanonicalExtractionResult {
   // Standard English extraction for the UI field table
-  const fields = extractFields(rawText, docTypeId, pageNumber, sourceLabel);
+  const englishFields = extractFields(rawText, docTypeId, pageNumber, sourceLabel);
 
-  // Multilingual canonical extraction for the Validation Engine
+  // Multilingual canonical extraction
   const canonical = parseMultilingualFields(rawText);
   const canonicalRecord = toCanonicalRecord(canonical);
   const normalizedMap = toNormalizedMap(canonical);
+
+  // Overlay canonical multilingual results onto the English fields.
+  // If the English extractor found nothing but the multilingual parser did,
+  // use the canonical display value (preserves Devanagari for the UI).
+  const fields = englishFields.map((field) => {
+    const canonicalKey = SCHEMA_TO_CANONICAL[field.key];
+    if (!canonicalKey) return field;
+
+    const canonicalField = canonical[canonicalKey];
+    if (!canonicalField?.detected) return field;
+
+    // If English extraction already found a value, keep it (English docs).
+    // Only override when the English result is empty (Marathi docs).
+    if (field.detected && field.value) return field;
+
+    return {
+      ...field,
+      value: canonicalField.displayValue,
+      confidence: 92,
+      detected: true,
+      status: 'extracted' as const,
+      evidence: {
+        sourceDoc: sourceLabel || field.label,
+        pageNumber,
+        snippet: canonicalField.snippet,
+      },
+    };
+  });
 
   return { fields, canonical, canonicalRecord, normalizedMap };
 }

@@ -95,11 +95,12 @@ interface LabelEntry {
  * Build a label-then-value regex from a label pattern string.
  * Captures everything after the label up to end-of-line as group 1.
  * Tolerates optional colon, dash, or whitespace separators.
+ * Anchored to start-of-line so a shorter label doesn't match as a substring
+ * inside a longer label.
  */
 function labelRegex(label: string): RegExp {
-  // Escape regex special chars in the label, then add a value-capture group.
-  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`${escaped}\\s*[:：\\-]?\\s*(.+)`, 'i');
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+  return new RegExp(`^\\s*${escaped}\\s*[:：\\-]?\\s*(.+)`, 'i');
 }
 
 const LABEL_ENTRIES: LabelEntry[] = [
