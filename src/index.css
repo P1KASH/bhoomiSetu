@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #112440;
+  }
+  body {
+    background-color: #f5f1e8;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply bg-white border border-sand-200 shadow-panel;
+  }
+  .panel-tight {
+    @apply bg-white border border-sand-200;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-navy-400 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-navy-700 text-white hover:bg-navy-600;
+  }
+  .btn-accent {
+    @apply btn bg-saffron-400 text-navy-900 hover:bg-saffron-300;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-navy-700 border border-navy-200 hover:bg-navy-50;
+  }
+  .btn-ghost {
+    @apply btn text-navy-600 hover:bg-navy-50;
+  }
+  .tab {
+    @apply px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium;
+  }
+}
+
+/* subtle map grid background */
+.map-grid-bg {
+  background-image:
+    linear-gradient(rgba(23,48,82,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23,48,82,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+.animate-scanline {
+  animation: scanline 1.8s ease-in-out infinite;
+}
+
+@keyframes pulsedot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.4; }
+}
+.animate-pulsedot {
+  animation: pulsedot 1.6s ease-in-out infinite;
+}
+
+@keyframes flowdash {
+  to { stroke-dashoffset: -16; }
+}
+.animate-flowdash {
+  animation: flowdash 0.8s linear infinite;
+}
